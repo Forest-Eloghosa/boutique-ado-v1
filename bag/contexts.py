@@ -2,8 +2,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from products.models import Product
-
-
+ 
 def bag_contents(request):
 
     bag_items = []
@@ -12,20 +11,28 @@ def bag_contents(request):
     bag = request.session.get('bag', {})
 
     for item_id, item_data in bag.items():
-        # Handle backward compatibility - convert old integer format to new format
+
         if isinstance(item_data, int):
-            item_data = {'items_by_size': {None: item_data}}
-        
-        product = get_object_or_404(Product, pk=item_id)
-        for size, quantity in item_data['items_by_size'].items():
-            total += quantity * product.price
-            product_count += quantity
+            product = get_object_or_404(Product, pk=item_id)
+            total += item_data * product.price
+            product_count += item_data
             bag_items.append({
                 'item_id': item_id,
-                'quantity': quantity,
+                'quantity': item_data,
                 'product': product,
-                'size': size,
             })
+            
+        else:
+            product = get_object_or_404(Product, pk=item_id)
+            for size, quantity in item_data['items_by_size'].items():
+                total += quantity * product.price
+                product_count += quantity
+                bag_items.append({
+                    'item_id': item_id,
+                    'quantity': quantity,
+                    'product': product,
+                    'size': size,
+                })
 
     if total < settings.FREE_DELIVERY_THRESHOLD:
         delivery = total * Decimal(settings.STANDARD_DELIVERY_PERCENTAGE / 100)
@@ -33,9 +40,9 @@ def bag_contents(request):
     else:
         delivery = 0
         free_delivery_delta = 0
-
+    
     grand_total = delivery + total
-
+    
     context = {
         'bag_items': bag_items,
         'total': total,
