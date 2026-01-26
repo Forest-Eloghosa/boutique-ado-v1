@@ -84,11 +84,6 @@ def adjust_bag(request, item_id):
     if 'product_size' in request.POST:
         size = request.POST['product_size']
     bag = request.session.get('bag', {})
-    
-    # Handle backward compatibility - convert old integer format to new format
-    if item_id in bag and isinstance(bag[item_id], int):
-        bag[item_id] = {'items_by_size': {None: bag[item_id]}}
-    
     if size:
         if quantity > 0:
             bag[item_id]['items_by_size'][size] = quantity
@@ -107,15 +102,13 @@ def adjust_bag(request, item_id):
             )
     else:
         if quantity > 0:
-            bag[item_id]['items_by_size'][None] = quantity
+            bag[item_id] = quantity
             messages.success(
                 request,
-                f'Updated {product.name} quantity to {bag[item_id]["items_by_size"][None]}'
+                f'Updated {product.name} quantity to {bag[item_id]}'
             )
         else:
-            del bag[item_id]['items_by_size'][None]
-            if not bag[item_id]['items_by_size']:
-                bag.pop(item_id)
+            bag.pop(item_id)
             messages.success(
                 request,
                 f'Removed {product.name} from your bag'
